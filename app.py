@@ -29,7 +29,7 @@ def create_app():
     app.config['SECURITY_CSRF_PROTECT_MECHANISMS'] = []
     app.config['SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS'] = True
 
-    views.create_view(app)
+    views.create_view(app, user_datastore)
 
     return app
 
