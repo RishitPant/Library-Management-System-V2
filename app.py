@@ -10,6 +10,10 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.sqlite3'
     app.config['SECURITY_PASSWORD_SALT'] = 'swaad-anusaar'
 
+    app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = 'Authentication-Token'
+    app.config['SECURITY_TOKEN_MAX_AGE'] = 3600
+    app.config['SECURITY_LOGIN_WITHOUT_CONFIRMATION'] = True
+
     db.init_app(app)
 
     with app.app_context():

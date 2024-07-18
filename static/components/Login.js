@@ -1,3 +1,5 @@
+import router from '../utils/router.js'
+
 const Login = {
     template: `
     <div>
@@ -11,7 +13,7 @@ const Login = {
           <label for="password">Password</label>
           <input type="password" v-model="password" id="password" required>
         </div>
-        <button @click='submitInfo'>Login</button>
+        <button type="submit">Login</button>
       </form>
       <p v-if="message">{{ message }}</p>
     </div>
@@ -29,7 +31,7 @@ const Login = {
     methods: {
         async submitInfo() {
             const url = window.location.origin
-            const res = await fetch(url+'/login', {
+            const res = await fetch(url+'/user-login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -38,7 +40,17 @@ const Login = {
             } )
 
             if (res.ok) {
-              console.log("logged in")
+              const data = await res.json()
+
+              sessionStorage.setItem("token", data.token)
+              sessionStorage.setItem("role", data.role)
+              sessionStorage.setItem("email", data.email)
+              sessionStorage.setItem("id", data.id)
+
+              console.log(sessionStorage.getItem("role"))
+              
+              router.push(`/my_books/${data.id}`)
+
             } else {
               console.error("Login Failed")
             }

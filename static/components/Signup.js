@@ -14,7 +14,7 @@ const Signup = {
           <label for="password">Password</label>
           <input type="password" v-model="password" id="password" required>
         </div>
-        <button @click='submitInfo'>Signup</button>
+        <button type=submit >Signup</button>
       </form>
       <p v-if="message">{{ message }}</p>
     </div>
