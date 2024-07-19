@@ -11,7 +11,7 @@ const MyBooks = {
               <img class="card-img-top" :src="bookImage(book.book_img)" alt="Card image cap">
               <div class="card-body">
                 <h5 class="card-title">
-                  <a :href="'/view/' + book.id">{{ book.name }}</a>
+                  <router-link :to="'/view/' + book.id">{{book.name}}</router-link> 
                 </h5>
                 <p class="card-text">Author: {{ book.authors }}</p>
                 <p class="card-text">Section: {{ book.section }}</p>
@@ -21,6 +21,7 @@ const MyBooks = {
                 <a :href="'/buy_book/' + book.id" class="btn btn-primary">Buy</a>
                 <button @click="returnBook(book.id)" class="btn btn-danger">Return</button>
                 <button @click="markAsCompleted(book.id)" class="btn btn-success">Mark as Completed</button>
+                <button @click="viewBook(book)" class="btn btn-secondary">View</button>
               </div>
             </div>
           </div>
@@ -47,6 +48,13 @@ const MyBooks = {
             <p>No completed books available.</p>
           </div>
         </div>
+<div v-if="showBook">
+        <div id="pdf">
+          <embed :src="pdf" type="application/pdf" width="100%" height="700px"/>
+        </div>
+      </div>
+    </div>
+
       </div>
     `,
 
@@ -56,6 +64,8 @@ const MyBooks = {
             completedBooks: [],
             bookRatingDict: {},
             currentuser: null,
+            showBook: null,
+            pdf: ''
         }
     },
 
@@ -84,13 +94,62 @@ const MyBooks = {
             console.log(image)
             return `/static/images/${encodeURIComponent(image)}`
         },
-        returnBook(bookId) {
-
+        async returnBook(bookId) {
+            try {
+              const res = await fetch(`/my_books/${this.$route.params.id}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  action: 'return',
+                  book_id: bookId
+                })
+              })
+              const data = await res.json()
+              if (data.success) {
+                this.userBooks = this.userBooks.filter(book => book.id !== bookId)
+                console.log("RETURNED")
+              } else {
+                console.log("ERROR")
+              }
+            } catch (error) {
+              console.error("Error returning book:", error)
+            }
         },
-        markAsCompleted(bookId) {
-
+        async markAsCompleted(bookId) {
+            try {
+              const res = await fetch(`/my_books/${this.$route.params.id}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  action: "mark_as_completed",
+                  book_id: bookId,
+                })
+              })
+              if (!res.ok) {
+                throw new Error("Failed to mark book as completed")
+              }
+              const data = await res.json()
+              if (data.success) {
+                const book = this.userBooks.find(book => book.id === bookId)
+                if (book) {
+                  this.userBooks = this.userBooks.filter(book => book.id !== bookId)
+                  this.completedBooks.push(book)
+                }
+              }
+            } catch (error) {
+              console.error("Error mraking book as completed:", error)
+            }
         },
-        viewBook(bookId) {
+        viewBook(book) {
+            this.showBook = book
+            this.pdf = `/static/pdf/${encodeURIComponent(book.content)}`
+        },
+
+        buyBook() {
 
         }
     }

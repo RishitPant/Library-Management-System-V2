@@ -105,10 +105,14 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
                     return jsonify(message='Book not found'), 404
 
                 if action == 'return':
-                    book.is_available = True
-                    current_user.books_taken.remove(book)
-                    db.session.commit()
-                    return jsonify(message=f'Book "{book.name}" returned successfully!', success=True)
+                    connection = UserBookConnection.query.filter_by(user_id=userid, book_id=book_id).first()
+                    if connection:
+                        book.is_available = True
+                        db.session.delete(connection)
+                        db.session.commit()
+                        return jsonify(message=f'Book "{book.name}" returned successfully!', success=True)
+                    else:
+                        return jsonify(message="Book connection not found"), 404
 
                 elif action == 'mark_as_completed':
                     complete_book_check = UserBookConnection.query.filter_by(user_id=current_user.id, book_id=book_id).first()
@@ -193,6 +197,25 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
         ]
 
         return jsonify({"feedbacks": feedback_list, 'avg_rating': avg_rating, 'bookid': bookid})
+    
+
+    @app.route('/view/<int:bookid>', methods=["GET"])
+    def view(bookid):
+        if not current_user.is_authenticated:
+            return jsonify({"message": "Unauthorised access"}), 401
+
+        book = Book.query.get(bookid)
+        if not book:
+            return jsonify({"message": "Book not found"}), 404
+        
+        response = {
+            "id": book.id,
+            "name": book.name,
+            "content": book.content
+        }
+
+        return jsonify(response)
+
 
     app.route('/logout')
     def logout():
