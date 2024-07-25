@@ -124,7 +124,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
                         return jsonify(message='Book connection not found'), 404
 
                 elif action == 'view':
-                    return jsonify(redirect_url=url_for('view', bookid=book_id))
+                    # return jsonify(redirect_url=url_for('view', bookid=book_id))
+                    return jsonify({"bookid": book_id}), 200
 
             # Handling GET request
             connection = UserBookConnection.query.filter_by(user_id=userid).all()
@@ -215,6 +216,92 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
         }
 
         return jsonify(response)
+    
+
+    @app.route('/buy-book/<int:bookid>', methods=["GET", "POST"])
+    def buy_book(bookid):
+        # if not current_user.is_authenticated:
+        #     pass
+        book = Book.query.get(bookid)
+
+        if request.method == "POST":
+            if book:
+                check_user_bought = UserBookBuy.query.filter_by(userid=current_user.id, bookid=bookid).first()
+                if check_user_bought:
+                    return jsonify({"message": "Book already bought!"}), 400
+                else:
+                    user_book_bought = UserBookBuy(userid=current_user.id, bookid=bookid, bought=True)
+                    db.session.add(user_book_bought)
+                    db.session.commit()
+                    return jsonify({"message": "Book bought!"}), 200
+            else:
+                return jsonify({"message": "Book not found!"}), 400
+            
+        
+        response = {
+            "book": {
+                "id": book.id,
+                "name": book.name
+            },
+            "userid": current_user.id
+        }
+
+        return jsonify(response), 200
+
+
+    @app.route('/books', methods=["GET", "POST"])
+    def books():
+        # if not current_user.is_authenticated:
+        #     flash('Please log in to access this page.', 'error')
+        #     return jsonify(message='Unauthorized access'), 401
+        
+        count_connection = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=False).count()
+
+        recommended = Book.query.all()
+        sections = Section.query.all()
+
+        user_feedbacks = Feedback.query.all()
+
+        book_rating_dict = {}
+        for book in user_feedbacks:
+            reviews = Feedback.query.filter_by(books_id=book.books_id).all()
+            if len(reviews) > 0:
+                avg_rating = sum(review.rating for review in reviews) / len(reviews)
+            else:
+                avg_rating = 0
+            book_rating_dict[book.books_id] = avg_rating
+
+        recommended_books = [book.to_dict() for book in recommended]
+        section_list = [section.to_dict() for section in sections]
+        user_feedback_list = [feedback.to_dict() for feedback in user_feedbacks]
+
+        # Return the data as a JSON response
+        return jsonify(
+            user_feedbacks=user_feedback_list,
+            recommended=recommended_books,
+            sections=section_list,
+            book_rating_dict=book_rating_dict,
+            count_connection=count_connection
+        ), 200
+    
+
+    @app.route('/admin_dashboard', methods=["GET", "POST"])
+    def admin_dashboard():
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        sections = Section.query.all()
+        books = Book.query.all()
+
+        sections_data = [section.to_dict() for section in sections]
+        books_data = [book.to_dict() for book in books]
+
+        return jsonify({
+            "sections": sections_data,
+            "books": books_data,
+            "current_user": current_user.email
+        }), 200
 
 
     app.route('/logout')

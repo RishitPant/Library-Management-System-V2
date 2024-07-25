@@ -18,7 +18,7 @@ const MyBooks = {
                 <router-link :to="'/' + book.id + '/ratings'">Ratings</router-link>
                   <p class="card-text">Rating: {{ bookRatingDict[book.id] || 'No rating' }}/5</p>
                 </a>
-                <a :href="'/buy_book/' + book.id" class="btn btn-primary">Buy</a>
+                <router-link :to="'/buy-book/' + book.id" class="btn btn-primary">Buy</router-link>
                 <button @click="returnBook(book.id)" class="btn btn-danger">Return</button>
                 <button @click="markAsCompleted(book.id)" class="btn btn-success">Mark as Completed</button>
                 <button @click="viewBook(book)" class="btn btn-secondary">View</button>
@@ -39,7 +39,7 @@ const MyBooks = {
                 <h5 class="card-title">{{ book.name }}</h5>
                 <p class="card-text">Author: {{ book.authors }}</p>
                 <p class="card-text">Section: {{ book.section.section_name }}</p>
-                <a :href="'/buy_book/' + book.id" class="btn btn-primary">Buy</a>
+                <router-link :to="'/buy-book/' + book.id" class="btn btn-primary">Buy</router-link>
                 <button @click="viewBook(book.id)" class="btn btn-secondary">View</button>
               </div>
             </div>
