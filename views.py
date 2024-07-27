@@ -4,6 +4,13 @@ from flask_security import auth_required, current_user, roles_accepted, SQLAlche
 from models import *
 from flask_security.utils import hash_password, verify_password
 from extensions import db
+import os
+
+current_dir = os.path.abspath(os.path.dirname(__file__))
+
+IMG_UPLOAD_FOLDER = os.path.join(current_dir, 'static', 'images')
+PDF_UPLOAD_FOLDER = os.path.join(current_dir, 'static', 'pdf')
+
 
 def create_view(app, user_datastore : SQLAlchemyUserDatastore):
 
@@ -302,6 +309,111 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
             "books": books_data,
             "current_user": current_user.email
         }), 200
+
+
+    @app.route('/add_book', methods=["GET", "POST"])
+    def add_book():
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        if request.method == "GET":
+            sections = Section.query.all()
+            resp = [section.to_dict() for section in sections]
+            return jsonify({"sections": resp})
+
+        if request.method == "POST":
+            data = request.form
+            name = data.get("name")
+            authors = data.get("authors")
+            num_of_pages = data.get("num_of_pages")
+            section_id = int(data.get("section_id"))
+            
+            if 'content' not in request.files or 'book_img' not in request.files:
+                return jsonify({"error": "Content and Book Image files are required"}), 400
+
+            content = request.files['content']
+            book_img = request.files['book_img']
+
+            if content.filename == '' or book_img.filename == '':
+                return jsonify({"error": "Files must have filenames"}), 400
+
+            # Save files to the respective directories
+            book_img_filename = book_img.filename
+            content_filename = content.filename
+            book_img.save(os.path.join(IMG_UPLOAD_FOLDER, book_img_filename))
+            content.save(os.path.join(PDF_UPLOAD_FOLDER, content_filename))
+
+            # Check if book already exists
+            existing_book = Book.query.filter_by(name=name).first()
+            if existing_book:
+                return jsonify({"error": "Book already exists"}), 400
+
+            # Add book to the database
+            book = Book(
+                name=name,
+                authors=authors,
+                content=content_filename,
+                num_of_pages=num_of_pages,
+                section_id=section_id,
+                book_img=book_img_filename
+            )
+            db.session.add(book)
+            db.session.commit()
+            return jsonify({"message": "Book added successfully"}), 201
+
+
+    @app.route('/edit-book/<int:id>', methods=["GET", "PUT"])
+    def edit_book(id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        book = Book.query.get(id)
+        if not book:
+            return jsonify({"error": "Book not found"}), 404
+
+        if request.method == 'GET':
+            sections = Section.query.all()
+            return jsonify({
+                "book": book.to_dict(),
+                "sections": [section.to_dict() for section in sections]
+            }), 200
+
+        if request.method == 'PUT':
+            data = request.form
+            name = data.get("name")
+            authors = data.get("authors")
+            num_of_pages = data.get("num_of_pages")
+            section_id = data.get("section_id")
+
+            check_existing = Book.query.filter(Book.name == name, Book.id != book.id).first()
+            if check_existing:
+                return jsonify({"error": "Book with same name exists"}), 400
+
+            book.name = name
+            book.authors = authors
+            book.num_of_pages = num_of_pages
+            book.section_id = section_id
+
+            if 'content' in request.files:
+                content_file = request.files['content']
+                if content_file and hasattr(content_file, 'filename'):
+                    content_filename = content_file.filename
+                    content_file.save(os.path.join(PDF_UPLOAD_FOLDER, content_filename))
+                    book.content = content_filename
+
+            if 'book_img' in request.files:
+                book_img_file = request.files['book_img']
+                if book_img_file and hasattr(book_img_file, 'filename'):
+                    book_img_filename = book_img_file.filename
+                    book_img_file.save(os.path.join(IMG_UPLOAD_FOLDER, book_img_filename))
+                    book.book_img = book_img_filename
+
+            db.session.commit()
+
+            return jsonify({"message": "Book updated successfully"}), 200
+
 
 
     app.route('/logout')

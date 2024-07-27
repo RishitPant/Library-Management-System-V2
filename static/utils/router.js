@@ -9,6 +9,8 @@ import ViewBook from '../components/ViewBook.js'
 import BuyBook from '../components/BuyBook.js'
 import Books from '../components/Books.js'
 import AdminDashboard from '../components/AdminDashboard.js'
+import AddBook from '../components/AddBook.js'
+import EditBook from '../components/EditBook.js'
 
 
 const routes = [
@@ -21,7 +23,9 @@ const routes = [
     { path: '/view/:bookid', component: ViewBook },
     { path: '/buy-book/:bookid', component: BuyBook },
     { path: '/books', component: Books },
-    { path: '/admin_dashboard', component: AdminDashboard }
+    { path: '/admin_dashboard', component: AdminDashboard },
+    { path: '/add_book', component: AddBook },
+    { path: '/edit-book/:id', component: EditBook }
 ]
 
 const router = new VueRouter({
