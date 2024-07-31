@@ -415,6 +415,106 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
             return jsonify({"message": "Book updated successfully"}), 200
 
 
+    @app.route('/edit-section/<int:id>', methods=['GET', 'POST'])
+    def edit_section(id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        section = Section.query.get(id)
+
+        if not section:
+            return jsonify({"error": "Book not found"}), 404
+
+        if request.method == "GET":
+            return jsonify({"section": section.to_dict()}), 200
+
+
+        if request.method == "POST":
+            data = request.get_json()
+            section_name = data.get("section_name")
+
+            check_existing = Section.query.filter(Section.section_name==section_name, Section.id != section.id).first()
+
+            if check_existing:
+                return jsonify({"message": "Section already exists"})
+
+            if not check_existing:
+                section.section_name = section_name
+                db.session.commit()
+
+        return jsonify({"message": "Section edited successfully"}, 200)
+
+
+    @app.route('/add-section', methods=["GET", "POST"])
+    def add_section():
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        if request.method == "GET":
+            sections = Section.query.all()
+            resp = [section.to_dict() for section in sections]
+            return jsonify({"sections": resp}), 200
+
+        if request.method == "POST":
+            data = request.get_json()
+            section_name = data.get("section_name")
+            description = data.get("description")
+
+            existing_section = Section.query.filter_by(section_name=section_name).first()
+
+            if existing_section:
+                return jsonify({"message": "Section already exists"}), 409
+            
+            section = Section(section_name=section_name, description=description)
+            db.session.add(section)
+            db.session.commit()
+
+            return jsonify({"message": "Section added successfully"}), 201
+
+        return jsonify({"message": "Invalid request method"}), 405
+
+
+    @app.route('/delete-section/<int:id>', methods=["GET", "POST"])
+    def delete_section(id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Only admins can view this page', 'error')
+        #     return redirect(url_for('home'))
+
+        section = Section.query.get(id)
+
+        if request.method == "GET":
+            return jsonify({"section": section.to_dict()}), 200
+        
+        if request.method == "POST":
+            books = Book.query.filter_by(section_id=section.id).all()
+            for book in books:
+                db.session.delete(book)
+
+            db.session.delete(section)
+            db.session.commit()
+
+        return jsonify({"message": "Section deleted successfully"}), 200
+    
+
+    @app.route('/delete-book/<int:id>', methods=["GET", "POST"])
+    def delete_book(id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        book = Book.query.get(id)
+
+        if request.method == "GET":
+            return jsonify({"book": book.to_dict()}), 200
+
+        if request.method == "POST":
+            db.session.delete(book)
+            db.session.commit()
+
+        return jsonify({"message": "Book deleted successfully"}), 200
+
 
     app.route('/logout')
     def logout():

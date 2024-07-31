@@ -11,6 +11,10 @@ import Books from '../components/Books.js'
 import AdminDashboard from '../components/AdminDashboard.js'
 import AddBook from '../components/AddBook.js'
 import EditBook from '../components/EditBook.js'
+import EditSection from '../components/EditSection.js'
+import AddSection from '../components/AddSection.js'
+import DeleteSection from '../components/DeleteSection.js'
+import DeleteBook from '../components/DeleteBook.js'
 
 
 const routes = [
@@ -25,7 +29,11 @@ const routes = [
     { path: '/books', component: Books },
     { path: '/admin_dashboard', component: AdminDashboard },
     { path: '/add_book', component: AddBook },
-    { path: '/edit-book/:id', component: EditBook }
+    { path: '/edit-book/:id', component: EditBook },
+    { path: '/edit-section/:id', component: EditSection },
+    { path: '/add-section', component: AddSection },
+    { path: '/delete-section/:id', component: DeleteSection },
+    { path: '/delete-book/:id', component: DeleteBook }
 ]
 
 const router = new VueRouter({
