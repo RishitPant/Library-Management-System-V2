@@ -111,6 +111,14 @@ class UserBookRequest(db.Model):
     book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
     status = db.Column(db.String(20), default='pending')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'book_id': self.book_id,
+            'status': self.status
+        }
+
 
 class UserBookBuy(db.Model):
     id = db.Column(db.Integer, primary_key=True)

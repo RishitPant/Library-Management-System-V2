@@ -516,6 +516,80 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
         return jsonify({"message": "Book deleted successfully"}), 200
 
 
+    @app.route('/request_book/<int:book_id>', methods=["GET", "POST"])
+    def request_book(book_id):
+        # if not current_user.is_authenticated:
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        if request.method == "POST":
+            action = request.form.get('action')
+
+            if action == "request":
+                check_req_count = UserBookRequest.query.all()
+                if len(check_req_count) >= 5:
+                    return jsonify({"message": "You already have 5 books"})
+
+                requests = UserBookRequest(user_id=current_user.id, book_id=book_id)
+                db.session.add(requests)
+                db.session.commit()
+
+            return jsonify({"message": "Request added successfully"}), 200
+
+
+    @app.route('/book_requests', methods=["GET", "POST"])
+    def book_requests():
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        requests = UserBookRequest().query.all()
+
+        return jsonify({"requests": [ request.to_dict() for request in requests ]}), 200
+    
+
+    @app.route('/approve_request/<int:request_id>', methods=["GET", "POST"])
+    def approve_request(request_id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        if request.method == "POST":
+            user_req = UserBookRequest.query.get(request_id)
+
+            if user_req:
+                count_connections = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=False).count()
+
+                if count_connections < 5:
+                    connection = UserBookConnection(user_id=user_req.user_id, book_id=user_req.book_id)
+                    db.session.add(connection)
+                    user_req.status = 'approved'
+                    db.session.delete(user_req)
+                    db.session.commit()
+                    return jsonify({"message": "Request has been approved"}), 200
+                else:
+                    db.session.delete(user_req)
+                    db.session.commit()
+                    return jsonify({"message": "Book borrowing limit reached"}), 400
+
+        return jsonify({"message": "No pending requests"}), 200
+
+
+    @app.route('/reject_request/<int:request_id>', methods=["GET", "POST"])
+    def reject_request(request_id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        if request.method == "POST":
+            user_req = UserBookRequest.query.get(request_id)
+            if user_req:
+                db.session.delete(user_req)
+                db.session.commit()
+
+        return jsonify({"message": "Request rejected"}), 200
+
+
     app.route('/logout')
     def logout():
         pass
