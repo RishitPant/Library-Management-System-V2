@@ -56,10 +56,8 @@ const BookRequests = {
 
         async fetchRequests() {
             try {
-                console.log("Fetching requests")
                 const res = await fetch(`/book_requests`)
-                console.log(res)
-                console.log("yo")
+
                 if (res.ok) {
                     const data = await res.json()
                     console.log(data)

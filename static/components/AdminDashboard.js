@@ -60,11 +60,17 @@ const AdminDashboard = {
         }
     },
 
+    created() {
+      this.fetchData()
+    },
+
     methods: {
         async fetchData() {
             try {
               const response = await fetch('/admin_dashboard');
               const data = await response.json();
+
+              console.log(data)
       
               this.sections = data.sections;
               this.books = data.books;
@@ -75,7 +81,7 @@ const AdminDashboard = {
           },
 
           getSectionBooksUrl(sectionId) {
-            return `/section_books/${sectionId}`;
+            return `/#/section/${sectionId}`;
           },
       
           getEditSectionUrl(sectionId) {

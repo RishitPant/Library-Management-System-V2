@@ -16,6 +16,9 @@ import AddSection from '../components/AddSection.js'
 import DeleteSection from '../components/DeleteSection.js'
 import DeleteBook from '../components/DeleteBook.js'
 import BookRequests from '../components/BookRequests.js'
+import SearchBook from '../components/SearchBook.js'
+import SectionBooks from '../components/SectionBooks.js'
+import Stats from '../components/Stats.js'
 
 
 const routes = [
@@ -37,7 +40,10 @@ const routes = [
     { path: '/delete-book/:id', component: DeleteBook },
     { path: '/book_requests', component: BookRequests },
     { path: '/approve_request/:request_id', component: BookRequests },
-    { path: '/reject_request/:request_id', component: BookRequests }
+    { path: '/reject_request/:request_id', component: BookRequests },
+    { path: '/search', component: SearchBook },
+    { path: '/section/:section_id', component: SectionBooks },
+    { path: '/stats', component: Stats }
 ]
 
 const router = new VueRouter({

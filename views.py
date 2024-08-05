@@ -528,7 +528,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
             if action == "request":
                 check_req_count = UserBookRequest.query.all()
                 if len(check_req_count) >= 5:
-                    return jsonify({"message": "You already have 5 books"})
+                    return jsonify({"message": "You already have 5 books"}), 200
 
                 requests = UserBookRequest(user_id=current_user.id, book_id=book_id)
                 db.session.add(requests)
@@ -588,6 +588,91 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
                 db.session.commit()
 
         return jsonify({"message": "Request rejected"}), 200
+    
+
+    @app.route('/search')
+    def search():
+        # if not current_user.is_authenticated:
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        query = "%" + request.args.get('query', '').strip().lower() + "%"
+        
+        # Searching for books by name
+        book_search = Book.query.filter(Book.name.ilike(query)).all()
+        
+        # Searching for sections by section_name and then getting related books
+        section_search = Section.query.filter(Section.section_name.ilike(query)).all()
+        section_books_result = []
+        for section in section_search:
+            search_section_books = Book.query.filter_by(section_id=section.id).all()
+            section_books_result.extend(search_section_books)
+        
+        # Getting user feedback to calculate average ratings
+        user_feedbacks = Feedback.query.all()
+        book_rating_dict = {}
+        for feedback in user_feedbacks:
+            book_id = feedback.books_id
+            if book_id not in book_rating_dict:
+                reviews = Feedback.query.filter_by(books_id=book_id).all()
+                if reviews:
+                    avg_rating = sum(review.rating for review in reviews) / len(reviews)
+                else:
+                    avg_rating = 0
+                book_rating_dict[book_id] = avg_rating
+
+        return jsonify({
+            "book_search": [book.to_dict() for book in book_search],
+            "section_books_result": [book.to_dict() for book in section_books_result],
+            "book_rating_dict": book_rating_dict
+        }), 200
+
+
+    @app.route('/section/<int:section_id>/', methods=["GET", "POST"])
+    def section_books(section_id):
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        section = Section.query.get(section_id)
+        books = Book.query.filter_by(section_id=section_id).all()
+
+        response = {
+            'section':  section.section_name,
+            'books': [ book.to_dict() for book in books ]
+        }
+
+        return jsonify(response), 200
+    
+
+    @app.route('/stats', methods=["GET", "POST"])
+    def stats():
+        # if not current_user.is_authenticated or current_user.role != 'admin':
+        #     flash('Please log in to access this page.', 'error')
+        #     return redirect(url_for('home'))
+
+        total_books = len(Book.query.all())
+        total_sections = len(Section.query.all())
+        total_users = len(User.query.all())
+
+        sections = Section.query.all()
+        section_names = []
+        for section in sections:
+            section_names.append(section.section_name)
+        books = []
+        for section in sections:
+            books.append(len(section.books))
+
+        response = {
+            'total_books': total_books,
+            'total_sections': total_sections,
+            'total_users': total_users,
+            'section_names': section_names,
+            'books': books,
+            'section_books': list(zip(section_names, books))
+        }
+
+        return jsonify(response), 200
 
 
     app.route('/logout')
