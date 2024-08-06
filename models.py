@@ -71,7 +71,8 @@ class Book(db.Model):
             'authors': self.authors,
             'book_img': self.book_img,
             'section': self.section.section_name if self.section else None,
-            'is_available': self.is_available
+            'is_available': self.is_available,
+            'section_id': self.section_id
         }
 
 class Section(db.Model):

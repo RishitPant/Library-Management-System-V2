@@ -159,7 +159,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
                 'user_books': [book.to_dict() for book in user_books],
                 'completed_books': [book.to_dict() for book in completed_books],
                 'book_rating_dict': book_rating_dict,
-                'currentuser': current_user.email
+                'currentuser': current_user.email,
+                'userid': userid
             }
 
             return jsonify(response)
@@ -209,8 +210,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
 
     @app.route('/view/<int:bookid>', methods=["GET"])
     def view(bookid):
-        if not current_user.is_authenticated:
-            return jsonify({"message": "Unauthorised access"}), 401
+        # if not current_user.is_authenticated:
+        #     return jsonify({"message": "Unauthorised access"}), 401
 
         book = Book.query.get(bookid)
         if not book:
@@ -283,13 +284,13 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore):
         user_feedback_list = [feedback.to_dict() for feedback in user_feedbacks]
 
         # Return the data as a JSON response
-        return jsonify(
-            user_feedbacks=user_feedback_list,
-            recommended=recommended_books,
-            sections=section_list,
-            book_rating_dict=book_rating_dict,
-            count_connection=count_connection
-        ), 200
+        return jsonify({
+            "user_feedbacks":user_feedback_list,
+            "recommended":recommended_books,
+            "sections":section_list,
+            "book_rating_dict":book_rating_dict,
+            "count_connection": count_connection
+        }), 200
     
 
     @app.route('/admin_dashboard', methods=["GET", "POST"])

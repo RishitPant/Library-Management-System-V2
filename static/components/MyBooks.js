@@ -21,7 +21,8 @@ const MyBooks = {
                 <router-link :to="'/buy-book/' + book.id" class="btn btn-primary">Buy</router-link>
                 <button @click="returnBook(book.id)" class="btn btn-danger">Return</button>
                 <button @click="markAsCompleted(book.id)" class="btn btn-success">Mark as Completed</button>
-                <button @click="viewBook(book)" class="btn btn-secondary">View</button>
+                <router-link :to="'/view/' + book.id"><button class="btn btn-primary">View</button></router-link>
+
               </div>
             </div>
           </div>
@@ -144,9 +145,12 @@ const MyBooks = {
               console.error("Error mraking book as completed:", error)
             }
         },
-        viewBook(book) {
-            this.showBook = book
-            this.pdf = `/static/pdf/${encodeURIComponent(book.content)}`
+        viewBook(bookId) {
+          const bookIdStr = String(bookId)
+          console.log(bookIdStr)
+            // this.showBook = bookId
+            // this.pdf = `/static/pdf/${encodeURIComponent(book.content)}`
+            this.$router.push(`/view/${(bookIdStr)}`)
         },
 
         buyBook() {
