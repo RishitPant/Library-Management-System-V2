@@ -6,7 +6,6 @@ import views
 from worker import celery_init_app
 import flask_excel as excel
 
-celery_app = None
 
 def create_app():
     app = Flask(__name__)
@@ -27,8 +26,6 @@ def create_app():
     cache.init_app(app)
 
     db.init_app(app)
-
-    celery_app = celery_init_app(app)
 
     with app.app_context():
 
@@ -51,7 +48,10 @@ def create_app():
 
     return app
 
+app = create_app()
+celery_app = celery_init_app(app)
+excel.init_excel(app)
+
+
 if __name__ == "__main__":
-    app = create_app()
-    excel.init_excel(app)
     app.run(port=8080)

@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, url_for, redirect
+from flask import render_template, request, jsonify, url_for, redirect, send_file
 from flask_login import login_user
 from flask_security import auth_required, current_user, roles_accepted, SQLAlchemyUserDatastore
 from models import *
@@ -7,6 +7,8 @@ from extensions import db
 import datetime
 from datetime import timedelta
 import os
+from tasks import create_csv
+from celery.result import AsyncResult
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -25,6 +27,24 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
                 if user:
                     user.last_visit = datetime.datetime.utcnow()
                     db.session.commit()
+
+    
+    @app.route('/start-export')
+    def start_export():
+        task = create_csv.delay()
+        return jsonify({"task_id": task.id})
+
+
+    @app.route('/get-csv/<task_id>')
+    def get_csv(task_id):
+        result = AsyncResult(task_id)
+
+        if result.ready():
+            return send_file('./user-downloads/file.csv')
+        else:
+            return "task not ready", 405
+        
+
 
     @app.route('/cachedemo')
     @cache.cached(timeout=10)
