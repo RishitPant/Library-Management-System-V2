@@ -20,6 +20,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     active = db.Column(db.Boolean)
+    last_visit = db.Column(db.DateTime, default=datetime.utcnow)
     fs_uniquifier = db.Column(db.String(), nullable = False)
 
     user_books = db.relationship('UserBookConnection', back_populates='user')

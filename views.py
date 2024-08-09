@@ -5,6 +5,7 @@ from models import *
 from flask_security.utils import hash_password, verify_password
 from extensions import db
 import datetime
+from datetime import timedelta
 import os
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -14,6 +15,16 @@ PDF_UPLOAD_FOLDER = os.path.join(current_dir, 'static', 'pdf')
 
 
 def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
+
+    
+    @app.before_request
+    def last_visit():
+        if request.endpoint not in ['login', 'static']:  # Skip for login and static files
+            if current_user.is_authenticated:  # Check if the user is authenticated
+                user = User.query.get(current_user.id)
+                if user:
+                    user.last_visit = datetime.datetime.utcnow()
+                    db.session.commit()
 
     @app.route('/cachedemo')
     @cache.cached(timeout=10)

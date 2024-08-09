@@ -4,6 +4,7 @@ from create_initial_data import create_data
 from flask_caching import Cache
 import views
 from worker import celery_init_app
+import flask_excel as excel
 
 celery_app = None
 
@@ -52,4 +53,5 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
+    excel.init_excel(app)
     app.run(port=8080)
