@@ -5,6 +5,7 @@ from flask_caching import Cache
 import views
 from worker import celery_init_app
 import flask_excel as excel
+from flask_mail import Mail
 
 
 def create_app():
@@ -22,6 +23,14 @@ def create_app():
     app.config['CACHE_DEFAULT_TIMEOUT'] = 300
     app.config['DEBUG'] = True
     app.config['CACHE_REDIS_PORT'] = 6379
+
+    app.config['MAIL_SERVER'] = 'smtp.google.com'
+    app.config['MAIL_PORT'] = 465
+    app.config['MAIL_USERNAME'] = 'rishitpant100@gmail.com'
+    app.config['MAIL_PASSWORD'] = 'hxnt kxjg nxlv pyrg'
+    app.config['MAIL_USE_TLS'] = False
+    app.config['MAIL_USE_SSL'] = True
+
 
     cache.init_app(app)
 
@@ -51,7 +60,7 @@ def create_app():
 app = create_app()
 celery_app = celery_init_app(app)
 excel.init_excel(app)
-
+mail = Mail(app)
 
 if __name__ == "__main__":
     app.run(port=8080)
