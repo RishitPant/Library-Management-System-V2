@@ -2,17 +2,21 @@ from celery import shared_task
 from datetime import datetime, timedelta
 from models import User, Book
 import flask_excel as excel
+from mail_service import send_email
 
-# def send_daily_reminder():
-#     remind_users = []
-#     users = User.query.all()
-#     books = Book.query.all()
-#     for user in users:
-#         # Check if the user hasn't visited in 15 days or has an upcoming return date within 7 days
-#         if user['last_visit'] < datetime.now() - timedelta(days=15):
-#             remind_users.append(user)
-#             break
-    
+
+@shared_task(ignore_result=True)
+def send_daily_reminder(to, sub, message):
+    remind_users = []
+    users = User.query.all()
+    books = Book.query.all()
+    for user in users:
+        # Check if the user hasn't visited in 15 days or has an upcoming return date within 7 days
+        if user['last_visit'] < datetime.now() - timedelta(hours=24):
+            remind_users.append(user)
+            break
+        send_email(to, sub, message)
+    return "OK"
 
 @shared_task(ignore_result=False)
 def create_csv():
