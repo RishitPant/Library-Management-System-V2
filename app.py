@@ -8,6 +8,7 @@ import flask_excel as excel
 from flask_mail import Mail
 from tasks import send_daily_reminder
 from celery.schedules import crontab
+from models import User
 
 
 def create_app():
@@ -66,10 +67,10 @@ excel.init_excel(app)
 
 @celery_app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
-    # Executes every Monday morning at 7:30 a.m.
+
     sender.add_periodic_task(
-        crontab(hour=7, minute=30, day_of_week=1),
-        send_daily_reminder.s('Happy Mondays!'),
+        crontab(hour=16, minute=10, day_of_week=6),
+        send_daily_reminder.s(),
     )
 
 

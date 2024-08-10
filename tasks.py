@@ -6,17 +6,23 @@ from mail_service import send_email
 
 
 @shared_task(ignore_result=True)
-def send_daily_reminder(to, sub, message):
+def send_daily_reminder():
     remind_users = []
     users = User.query.all()
     books = Book.query.all()
     for user in users:
-        # Check if the user hasn't visited in 15 days or has an upcoming return date within 7 days
-        if user['last_visit'] < datetime.now() - timedelta(hours=24):
-            remind_users.append(user)
-            break
-        send_email(to, sub, message)
-    return "OK"
+        if user.last_visit:
+            if user.last_visit < datetime.now() - timedelta(hours=24):
+                remind_users.append(user.email)
+
+    if remind_users:
+        subject = "Reminder to visit the library"
+        for email in remind_users:
+            content_body = f"<h1>Hi, {email}</h1><br><p>This is a reminder to visit the Library and read some books!</p>"
+            send_email(email, subject, content_body)
+
+    return "Reminders sent"
+
 
 @shared_task(ignore_result=False)
 def create_csv():
