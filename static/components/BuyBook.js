@@ -34,7 +34,12 @@ const BuyBook = {
         async fetchBook(bookId) {
             try {
 
-            const res = await fetch(`/buy-book/${bookId}`)
+            const res = await fetch(`/buy-book/${bookId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authentication-Token': sessionStorage.getItem('token')
+                  }
+            })
 
             if (res.ok) {
                 const data = await res.json()
@@ -58,8 +63,9 @@ const BuyBook = {
                 const res = await fetch(`/buy-book/${this.$route.params.bookid}`, {
                     method: "POST",
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      },
                     body: JSON.stringify({})
                 });
 

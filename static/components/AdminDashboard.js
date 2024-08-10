@@ -67,7 +67,12 @@ const AdminDashboard = {
     methods: {
         async fetchData() {
             try {
-              const response = await fetch('/admin_dashboard');
+              const response = await fetch('/admin_dashboard', {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authentication-Token': sessionStorage.getItem('token')
+                }
+              });
               const data = await response.json();
 
               console.log(data)

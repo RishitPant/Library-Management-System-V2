@@ -66,7 +66,12 @@ const EditBook = {
         async fetchBook() {
           const bookId = this.$route.params.id; // Assume the book ID is passed as a route parameter
           try {
-            const res = await fetch(`/edit-book/${bookId}`);
+            const res = await fetch(`/edit-book/${bookId}`, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authentication-Token': sessionStorage.getItem('token')
+              }
+            });
             if (res.ok) {
               const data = await res.json();
               this.book = data.book;
@@ -81,7 +86,12 @@ const EditBook = {
         },
         async fetchSections() {
           try {
-            const res = await fetch(`/edit-book/${this.$route.params.id}`);
+            const res = await fetch(`/edit-book/${this.$route.params.id}`, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authentication-Token': sessionStorage.getItem('token')
+              }
+            });
             if (res.ok) {
               const data = await res.json();
               this.sections = data.sections;
@@ -111,7 +121,11 @@ const EditBook = {
           try {
             const res = await fetch(`/edit-book/${this.book.id}`, {
               method: 'PUT',
-              body: formData
+              body: formData,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authentication-Token': sessionStorage.getItem('token')
+              }
             });
     
             if (res.ok) {

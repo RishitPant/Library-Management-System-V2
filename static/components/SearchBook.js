@@ -94,7 +94,12 @@ const SearchBook = {
       methods: {
         async doSearch() {
           try {
-            const res = await fetch(`/search?query=${encodeURIComponent(this.query)}`);
+            const res = await fetch(`/search?query=${encodeURIComponent(this.query)}`, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authentication-Token': sessionStorage.getItem('token')
+              }
+            });
             
             if (!res.ok) {
               throw new Error(`HTTP error! Status: ${res.status}`);
@@ -123,7 +128,8 @@ const SearchBook = {
             method: "POST",
             action: "request",
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Authentication-Token': sessionStorage.getItem('token')
             }
           })
 

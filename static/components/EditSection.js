@@ -41,8 +41,9 @@ const EditSection = {
                 const res = await fetch(`/edit-section/${this.$route.params.id}`, {
                     method: "GET",
                     headers: {
-                        'Content-Type': 'application/json'
-                    }
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      }
                 })
 
                 if (res.ok) {
@@ -62,8 +63,9 @@ const EditSection = {
                 const res = await fetch(`/edit-section/${this.section.id}`, {
                     method: "POST",
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      },
                     body: JSON.stringify({
                         section_name: this.section.section_name,
                         description: this.section.description

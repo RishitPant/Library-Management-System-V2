@@ -44,7 +44,12 @@ const Ratings = {
         async fetchFeedbacks() {
             try {
                 const url = window.location.origin
-                const res = await fetch("http://127.0.0.1:5000/"+`/${this.bookId}/ratings`)
+                const res = await fetch("http://127.0.0.1:5000/"+`/${this.bookId}/ratings`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      }
+                })
 
                 if (res.ok) {
                     const data = await res.json()
@@ -68,7 +73,8 @@ const Ratings = {
                     method: "POST",
                     headers: {
                         'Content-Type': 'application/json',
-                    },
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      },
                     body: JSON.stringify({ rating: this.selectedRating }),
                 })
 

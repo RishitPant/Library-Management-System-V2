@@ -56,7 +56,12 @@ const BookRequests = {
 
         async fetchRequests() {
             try {
-                const res = await fetch(`/book_requests`)
+                const res = await fetch(`/book_requests`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                    }
+                })
 
                 if (res.ok) {
                     const data = await res.json()

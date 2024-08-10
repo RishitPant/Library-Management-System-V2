@@ -53,7 +53,12 @@ const Books = {
   methods: {
     async fetchBooks() {
       try {
-        const response = await fetch('/books');
+        const response = await fetch('/books', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': sessionStorage.getItem('token')
+          }
+        });
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
 

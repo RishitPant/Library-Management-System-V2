@@ -1,11 +1,10 @@
-from flask import render_template, request, jsonify, url_for, redirect, send_file
-from flask_login import login_user
-from flask_security import auth_required, current_user, roles_accepted, SQLAlchemyUserDatastore
+from flask import render_template, request, jsonify, send_file
+from flask_login import login_user, login_required
+from flask_security import auth_required, current_user, SQLAlchemyUserDatastore, roles_required
 from models import *
 from flask_security.utils import hash_password, verify_password
 from extensions import db
 import datetime
-from datetime import timedelta
 import os
 from tasks import create_csv
 from celery.result import AsyncResult
@@ -21,8 +20,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
     @app.before_request
     def last_visit():
-        if request.endpoint not in ['login', 'static']:  # Skip for login and static files
-            if current_user.is_authenticated:  # Check if the user is authenticated
+        if request.endpoint not in ['login', 'static']:
+            if current_user.is_authenticated:
                 user = User.query.get(current_user.id)
                 if user:
                     user.last_visit = datetime.datetime.utcnow()
@@ -43,45 +42,13 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
             return send_file('./user-downloads/file.csv')
         else:
             return "task not ready", 405
-        
 
-
-    @app.route('/cachedemo')
-    @cache.cached(timeout=10)
-    def cachedemo():
-        return jsonify({"time": datetime.datetime.now()})
 
     @app.route('/')
+    @cache.cached(timeout=3600)
     def home():
         return render_template('index.html')
     
-
-    # @app.route('/register', methods=["GET","POST"])
-    # def register():
-        # print("called")
-        # data = request.get_json()
-        # email =  data.get('email')
-        # password = data.get('password')
-        # role = data.get('role')
-
-        # if not email or not password:
-        #     return jsonify({"message": "Invalid Input"})
-
-        # if user_datastore.find_user(email=email):
-        #     return jsonify({"message": "User already exists."})
-        
-        # if role == 'user':
-        #     active = True
-        
-        # try:
-        #     user_datastore.create_user(email=email, password=hash_password(password), role=[role], active=active)
-        #     db.session.commit()
-        #     print("commited")
-        # except:
-        #     print('Error while creating')
-        #     db.session.rollback()
-        #     return jsonify({'Message': "Error while creating user"}), 408
-        # return jsonify({"message" : "User created"}), 200
 
     @app.route('/register', methods=["POST"])
     def register():
@@ -122,16 +89,16 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
             return jsonify({'message': 'User does not exist'}), 404
         
         if verify_password(password, user.password):
-            login_user(user)
+            #login_user(user)
             return jsonify({'token': user.get_auth_token(), 'role': user.roles[0].name, 'id': user.id, 'email': user.email}), 200
+        else:
+            return jsonify({"message": "Wrong password"})
 
 
     @app.route("/my_books/<int:userid>", methods=["GET", "POST"])
+    @auth_required('token')
     def my_books(userid):
         try:
-            # if not current_user.is_authenticated:
-            #     return jsonify(message='Unauthorized access'), 401
-
             user = User.query.get(userid)
             if not user:
                 return jsonify(message='User not found'), 404
@@ -168,10 +135,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
                         return jsonify(message='Book connection not found'), 404
 
                 elif action == 'view':
-                    # return jsonify(redirect_url=url_for('view', bookid=book_id))
                     return jsonify({"bookid": book_id}), 200
 
-            # Handling GET request
             connection = UserBookConnection.query.filter_by(user_id=userid).all()
 
             user_books = Book.query.join(UserBookConnection).filter(
@@ -207,6 +172,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/<int:bookid>/ratings', methods=["GET", "POST"])
+    @auth_required('token')
     def book_ratings(bookid):
         if not current_user.is_authenticated:
             return jsonify({'message': 'Unauthorized access'}), 401
@@ -245,11 +211,12 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
         return jsonify({"feedbacks": feedback_list, 'avg_rating': avg_rating, 'bookid': bookid})
     
 
-    @app.route('/view/<int:bookid>', methods=["GET"])
-    def view(bookid):
-        # if not current_user.is_authenticated:
-        #     return jsonify({"message": "Unauthorised access"}), 401
 
+
+    @app.route('/view/<int:bookid>', methods=["GET"])
+    @cache.cached(timeout=3600)
+    @auth_required('token')
+    def view(bookid):
         book = Book.query.get(bookid)
         if not book:
             return jsonify({"message": "Book not found"}), 404
@@ -264,9 +231,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/buy-book/<int:bookid>', methods=["GET", "POST"])
+    @auth_required('token')
     def buy_book(bookid):
-        # if not current_user.is_authenticated:
-        #     pass
         book = Book.query.get(bookid)
 
         if request.method == "POST":
@@ -295,11 +261,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/books', methods=["GET", "POST"])
+    @cache.cached(timeout=3600)
+    @auth_required('token')
     def books():
-        # if not current_user.is_authenticated:
-        #     flash('Please log in to access this page.', 'error')
-        #     return jsonify(message='Unauthorized access'), 401
-        
         count_connection = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=False).count()
 
         recommended = Book.query.all()
@@ -320,7 +284,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
         section_list = [section.to_dict() for section in sections]
         user_feedback_list = [feedback.to_dict() for feedback in user_feedbacks]
 
-        # Return the data as a JSON response
         return jsonify({
             "user_feedbacks":user_feedback_list,
             "recommended":recommended_books,
@@ -331,11 +294,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/admin_dashboard', methods=["GET", "POST"])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def admin_dashboard():
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         sections = Section.query.all()
         books = Book.query.all()
 
@@ -350,11 +312,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/add_book', methods=["GET", "POST"])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def add_book():
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         if request.method == "GET":
             sections = Section.query.all()
             resp = [section.to_dict() for section in sections]
@@ -376,18 +337,15 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
             if content.filename == '' or book_img.filename == '':
                 return jsonify({"error": "Files must have filenames"}), 400
 
-            # Save files to the respective directories
             book_img_filename = book_img.filename
             content_filename = content.filename
             book_img.save(os.path.join(IMG_UPLOAD_FOLDER, book_img_filename))
             content.save(os.path.join(PDF_UPLOAD_FOLDER, content_filename))
 
-            # Check if book already exists
             existing_book = Book.query.filter_by(name=name).first()
             if existing_book:
                 return jsonify({"error": "Book already exists"}), 400
 
-            # Add book to the database
             book = Book(
                 name=name,
                 authors=authors,
@@ -402,11 +360,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/edit-book/<int:id>', methods=["GET", "PUT"])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def edit_book(id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         book = Book.query.get(id)
         if not book:
             return jsonify({"error": "Book not found"}), 404
@@ -454,11 +411,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/edit-section/<int:id>', methods=['GET', 'POST'])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def edit_section(id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         section = Section.query.get(id)
 
         if not section:
@@ -485,11 +441,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/add-section', methods=["GET", "POST"])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def add_section():
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         if request.method == "GET":
             sections = Section.query.all()
             resp = [section.to_dict() for section in sections]
@@ -515,11 +470,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/delete-section/<int:id>', methods=["GET", "POST"])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def delete_section(id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Only admins can view this page', 'error')
-        #     return redirect(url_for('home'))
-
         section = Section.query.get(id)
 
         if request.method == "GET":
@@ -537,11 +491,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/delete-book/<int:id>', methods=["GET", "POST"])
+    @cache.cached(timeout=1800)
+    @roles_required('admin')
+    @auth_required('token')
     def delete_book(id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         book = Book.query.get(id)
 
         if request.method == "GET":
@@ -555,11 +508,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/request_book/<int:book_id>', methods=["GET", "POST"])
+    @roles_required('user')
+    @auth_required('token')
     def request_book(book_id):
-        # if not current_user.is_authenticated:
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         if request.method == "POST":
             action = request.form.get('action')
 
@@ -576,22 +527,18 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/book_requests', methods=["GET", "POST"])
+    @roles_required('admin')
+    @auth_required('token')
     def book_requests():
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         requests = UserBookRequest().query.all()
 
         return jsonify({"requests": [ request.to_dict() for request in requests ]}), 200
     
 
     @app.route('/approve_request/<int:request_id>', methods=["GET", "POST"])
+    @roles_required('admin')
+    @auth_required('token')
     def approve_request(request_id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         if request.method == "POST":
             user_req = UserBookRequest.query.get(request_id)
 
@@ -614,11 +561,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/reject_request/<int:request_id>', methods=["GET", "POST"])
+    @roles_required('admin')
+    @auth_required('token')
     def reject_request(request_id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         if request.method == "POST":
             user_req = UserBookRequest.query.get(request_id)
             if user_req:
@@ -629,24 +574,19 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/search')
+    @roles_required('admin', 'user')
+    @auth_required('token')
     def search():
-        # if not current_user.is_authenticated:
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         query = "%" + request.args.get('query', '').strip().lower() + "%"
         
-        # Searching for books by name
         book_search = Book.query.filter(Book.name.ilike(query)).all()
         
-        # Searching for sections by section_name and then getting related books
         section_search = Section.query.filter(Section.section_name.ilike(query)).all()
         section_books_result = []
         for section in section_search:
             search_section_books = Book.query.filter_by(section_id=section.id).all()
             section_books_result.extend(search_section_books)
         
-        # Getting user feedback to calculate average ratings
         user_feedbacks = Feedback.query.all()
         book_rating_dict = {}
         for feedback in user_feedbacks:
@@ -667,11 +607,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/section/<int:section_id>/', methods=["GET", "POST"])
+    @roles_required('admin')
+    @auth_required('token')
     def section_books(section_id):
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         section = Section.query.get(section_id)
         books = Book.query.filter_by(section_id=section_id).all()
 
@@ -684,11 +622,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/stats', methods=["GET", "POST"])
+    @roles_required('admin')
+    @auth_required('token')
     def stats():
-        # if not current_user.is_authenticated or current_user.role != 'admin':
-        #     flash('Please log in to access this page.', 'error')
-        #     return redirect(url_for('home'))
-
         total_books = len(Book.query.all())
         total_sections = len(Section.query.all())
         total_users = len(User.query.all())

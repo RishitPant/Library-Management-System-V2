@@ -37,7 +37,12 @@ const DeleteBook = {
     async fetchData() {
         try {
 
-            const res = await fetch(`/delete-book/${this.$route.params.id}`)
+            const res = await fetch(`/delete-book/${this.$route.params.id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authentication-Token': sessionStorage.getItem('token')
+                  }
+            })
             console.log(res)
 
             if (res.ok) {

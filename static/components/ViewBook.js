@@ -28,7 +28,12 @@ const ViewBook = {
     methods: {
         async fetchBook() {
             try {
-                const res = await fetch(`/view/${this.$route.params.bookid}`)
+                const res = await fetch(`/view/${this.$route.params.bookid}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      }
+                })
                 if (!res.ok) {
                     throw new Error("Network response was not ok" + res.statusText)
                 }

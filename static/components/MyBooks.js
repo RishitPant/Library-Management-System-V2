@@ -77,7 +77,14 @@ const MyBooks = {
     methods: {
         async fetchData() {
             try {
-                const response = await fetch(`/my_books/${this.$route.params.id}`)
+                const token = localStorage.getItem('authToken');
+                console.log(token)
+                const response = await fetch(`/my_books/${this.$route.params.id}`, {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authentication-Token': sessionStorage.getItem('token')
+                  }
+                })
                 if (!response.ok) {
                     throw new Error("Network response was not ok" + response.statusText)
                 }
@@ -100,7 +107,8 @@ const MyBooks = {
               const res = await fetch(`/my_books/${this.$route.params.id}`, {
                 method: "POST",
                 headers: {
-                  "Content-Type": "application/json",
+                  'Content-Type': 'application/json',
+                  'Authentication-Token': sessionStorage.getItem('token')
                 },
                 body: JSON.stringify({
                   action: 'return',
@@ -123,7 +131,8 @@ const MyBooks = {
               const res = await fetch(`/my_books/${this.$route.params.id}`, {
                 method: "POST",
                 headers: {
-                  "Content-Type": "application/json",
+                  'Content-Type': 'application/json',
+                  'Authentication-Token': sessionStorage.getItem('token')
                 },
                 body: JSON.stringify({
                   action: "mark_as_completed",

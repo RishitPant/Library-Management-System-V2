@@ -31,7 +31,12 @@ const Stats = {
 
     methods: {
         async fetchData() {
-            const res = await fetch(`/stats`)
+            const res = await fetch(`/stats`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authentication-Token': sessionStorage.getItem('token')
+                  }
+            })
 
             if (res.ok) {
                 const data = await res.json()

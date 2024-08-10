@@ -42,7 +42,12 @@ const SectionBooks = {
 
     methods: {
         async fetchData() {
-            const res = await fetch(`/section/${this.$route.params.section_id}`)
+            const res = await fetch(`/section/${this.$route.params.section_id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authentication-Token': sessionStorage.getItem('token')
+                  }
+            })
 
             if (res.ok) {
                 const data = await res.json()

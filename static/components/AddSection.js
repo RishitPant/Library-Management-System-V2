@@ -30,7 +30,8 @@ const AddSection = {
                 const res = await fetch('/add-section', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
                     },
                     body: JSON.stringify({
                         section_name: this.section_name,

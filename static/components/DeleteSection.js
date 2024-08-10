@@ -32,7 +32,12 @@ const DeleteSection = {
     methods: {
         async fetchData() {
             try {
-                const res = await fetch(`/delete-section/${this.$route.params.id}`)
+                const res = await fetch(`/delete-section/${this.$route.params.id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      }
+                })
                 
                 if (res.ok) {
                     const data = await res.json()
@@ -51,6 +56,10 @@ const DeleteSection = {
             try {
                 const res = await fetch(`/delete-section/${this.$route.params.id}`, {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authentication-Token': sessionStorage.getItem('token')
+                      }
                 });
                 if (res.ok) {
                     const data = await res.json();
