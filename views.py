@@ -8,6 +8,7 @@ import datetime
 import os
 from tasks import create_csv
 from celery.result import AsyncResult
+from datetime import timedelta
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,6 +22,12 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     def forbidden(error):
         return jsonify({"message": "You cannot see this page"}), 403
     
+    def check_access(user_book_connection, time_period):
+        if user_book_connection.date_accessed is not None:
+            return user_book_connection.date_accessed + timedelta(minutes=time_period) < datetime.datetime.utcnow()
+        else:
+            return False
+
     @app.before_request
     def last_visit():
         if request.endpoint not in ['login', 'static']:
@@ -103,6 +110,14 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @roles_accepted('admin', 'user')
     def my_books(userid):
         try:
+            connection = UserBookConnection.query.filter_by(user_id=userid).all()
+            for i in connection:
+                if check_access(i, 1):  # Check if the book access period is over
+                    book = Book.query.get(i.book_id)
+                    db.session.delete(i)
+                    db.session.commit()
+                    return jsonify(message=f"Access to '{book.name}' has been revoked."), 200
+
             user = User.query.get(userid)
             if not user:
                 return jsonify(message='User not found'), 404
@@ -510,6 +525,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
         if request.method == "POST":
             UserBookConnection.query.filter_by(book_id=id).delete()
+            Feedback.query.filter_by(books_id=id).delete()
+
             db.session.commit()
             db.session.delete(book)
             db.session.commit()
