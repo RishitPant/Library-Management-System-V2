@@ -102,7 +102,7 @@ const MyBooks = {
 
         this.userBooks = data.user_books || []
         this.completedBooks = data.completed_books || []
-        this.bookRatingDict = data.book_Rating_dict || {}
+        this.bookRatingDict = data.book_rating_dict || {}
         this.currentuser = data.currentuser
 
         console.log('User Books:', this.userBooks);

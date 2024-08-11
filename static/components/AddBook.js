@@ -109,6 +109,8 @@ const AddBook = {
       formData.append('section_id', this.section_id)
       formData.append('book_img', this.book_img)
 
+      console.log("Submitting form with data:", formData);
+
       try {
         const res = await fetch('/add_book', {
           method: 'POST',
@@ -124,7 +126,8 @@ const AddBook = {
         }
 
         if (res.ok) {
-          this.$router.push({ name: 'adminview_all' })
+          // this.$router.push(`/admin_dashboard`)
+          console.log("ok")
 
         } else {
           console.log('Failed to add book')

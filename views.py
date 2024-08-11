@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, send_file
+from flask import render_template, request, jsonify, send_file, session, redirect, url_for
 from flask_login import login_user, login_required
 from flask_security import auth_required, current_user, SQLAlchemyUserDatastore, roles_required, roles_accepted
 from models import *
@@ -250,20 +250,29 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
                     user_book_bought = UserBookBuy(userid=current_user.id, bookid=bookid, bought=True)
                     db.session.add(user_book_bought)
                     db.session.commit()
-                    return jsonify({"message": "Book bought!"}), 200
             else:
                 return jsonify({"message": "Book not found!"}), 400
-            
-        
-        response = {
-            "book": {
-                "id": book.id,
-                "name": book.name
-            },
-            "userid": current_user.id
-        }
 
-        return jsonify(response), 200
+        return jsonify({
+                        "message": "Book bought!",
+                        "book": {
+                            "id": book.id,
+                            "name": book.name,
+                            "content": book.content
+                        },
+                        "userid": current_user.id
+                    }), 200 
+
+
+    @app.route('/download/<int:bookid>', methods=["GET"])
+    def download_book(bookid):
+        book = Book.query.get(bookid)
+        if book:
+            file_path = os.path.join(current_dir, 'static', 'pdf', book.content)
+
+            return send_file(file_path, as_attachment=True, download_name=book.content)
+        else:
+            return jsonify({"message": "Book not found!"}), 404
 
 
     @app.route('/books', methods=["GET", "POST"])
@@ -302,7 +311,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/admin_dashboard', methods=["GET"])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def admin_dashboard():
         sections = Section.query.all()
         books = Book.query.all()
@@ -320,7 +328,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/add_book', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def add_book():
         if request.method == "GET":
             sections = Section.query.all()
@@ -368,7 +375,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/edit-book/<int:id>', methods=["GET", "PUT"])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def edit_book(id):
         book = Book.query.get(id)
         if not book:
@@ -419,7 +425,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/edit-section/<int:id>', methods=['GET', 'POST'])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def edit_section(id):
         section = Section.query.get(id)
 
@@ -449,7 +454,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/add-section', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def add_section():
         if request.method == "GET":
             sections = Section.query.all()
@@ -478,7 +482,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/delete-section/<int:id>', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def delete_section(id):
         section = Section.query.get(id)
 
@@ -499,7 +502,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/delete-book/<int:id>', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
-    @cache.cached(timeout=1800)
     def delete_book(id):
         book = Book.query.get(id)
 
@@ -507,6 +509,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
             return jsonify({"book": book.to_dict()}), 200
 
         if request.method == "POST":
+            UserBookConnection.query.filter_by(book_id=id).delete()
+            db.session.commit()
             db.session.delete(book)
             db.session.commit()
 
@@ -580,7 +584,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
     @app.route('/search')
     @auth_required('token')
-    @roles_required('admin', 'user')
+    @roles_accepted('admin', 'user')
     def search():
         query = "%" + request.args.get('query', '').strip().lower() + "%"
         
@@ -656,4 +660,5 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
     app.route('/logout')
     def logout():
-        pass
+        session.clear()
+        return jsonify({"message": "Logged out successfully!"}), 200

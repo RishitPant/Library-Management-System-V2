@@ -160,7 +160,7 @@ const EditBook = {
           
         } else if (res.ok) {
           console.log('Book updated successfully');
-          this.$router.push({ name: 'adminview_all' })
+          this.$router.push(`/admin_dashboard`)
           this.errorMessage = ''
 
         } else {

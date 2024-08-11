@@ -24,7 +24,7 @@ const Books = {
                 <p class="card-text">Author: {{ book.authors }}</p>
                 <p class="card-text">Section: {{ section.section_name }}</p>
                 <p class="card-text">Rating: {{ bookRatingDict[book.id] || 0 }}</p>
-                <router-link :to="{ name: 'buyBook', params: { bookid: book.id } }" class="btn btn-primary">Buy</router-link>
+                <router-link :to="'/buy-book/' + book.id" class="btn btn-primary">Buy</router-link>
 
                 <div v-if="countConnection >= 5">
                   <form @submit.prevent="requestBook(book.id)">
@@ -85,8 +85,6 @@ const Books = {
         this.bookRatingDict = data.book_rating_dict
         this.countConnection = data.count_connection
         this.userBooks = data.user_feedbacks.map(feedback => feedback.book_id)
-
-        console.log(bookRatingDict)
 
       } catch (error) {
         console.error('Error fetching books:', error)

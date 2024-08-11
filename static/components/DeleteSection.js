@@ -77,7 +77,7 @@ const DeleteSection = {
 
           } else if (res.ok) {
             const data = await res.json()
-            this.$router.push('/')
+            this.$router.push('/admin_dashboard')
             this.errorMessage = ''
 
           } else {

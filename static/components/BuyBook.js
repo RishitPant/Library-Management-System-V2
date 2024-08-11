@@ -1,16 +1,16 @@
 const BuyBook = {
     template: `
     <div>
-    <h2 v-if="errorMessage" style="text-align: center; color: red;">{{ errorMessage }}</h2>
+      <h2 v-if="errorMessage" style="text-align: center; color: red;">{{ errorMessage }}</h2>
       <div v-if="!errorMessage">
         <h2>Are you sure you want to buy {{ name }}?</h2>
-        <div v-if="errorMessage" style="color: red;">{{ errorMessage }}</div>
         <form @submit.prevent="buyBook">
-          <button type="submit" class="btn btn-success">Buy</button>
+          <button class="btn btn-success">Buy</button>
         </form>
         <button @click="goBack" class="btn btn-dark">Back</button>
       </div>
-      </div>
+    </div>
+
     `,
   
     data() {
@@ -51,6 +51,7 @@ const BuyBook = {
 
             } else {
               this.name = data.book.name
+              this.userid = data.userid
             }
             
           } else {
@@ -70,34 +71,28 @@ const BuyBook = {
               'Content-Type': 'application/json',
               'Authentication-Token': sessionStorage.getItem('token')
             },
-            body: JSON.stringify({})
+            
           })
   
           if (res.status === 403) {
             this.errorMessage = "You are not authorized to purchase this book."
 
-          } else if (res.ok) {
-            const data = await res.json()
+          }
+          
+          if (res.ok) {
 
-            if (data.book && data.book.name && data.userid) {
-              this.name = data.book.name
-              this.userid = data.userid
+            window.location.href = `/download/${this.$route.params.bookid}`;
+            this.$router.push(`/my_books/${this.userid}`)
 
-              console.log("Purchase successful:", data)
-
-              this.$router.push({ name: 'my_books', params: { userid: this.userid } })
-
-            } else {
-              this.errorMessage = "An error occurred while processing the purchase."
-            }
 
           } else {
             console.log("Error occurred during purchase")
+            this.errorMessage = res.message
           }
 
         } catch (error) {
           console.error("Error fetching buy book data", error)
-          this.errorMessage = "An error occurred while processing the purchase."
+          // this.errorMessage = "An error occurred while processing the purchase."
         }
       }
     }

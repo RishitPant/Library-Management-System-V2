@@ -100,11 +100,11 @@ const AdminDashboard = {
       },
 
       getEditSectionUrl(sectionId) {
-          return `/edit_section/${sectionId}`
+          return `/#/edit-section/${sectionId}`
       },
 
       getDeleteSectionUrl(sectionId) {
-          return `/delete_section/${sectionId}`
+          return `/#/delete-section/${sectionId}`
       },
 
       getSectionName(sectionId) {
