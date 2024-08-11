@@ -1,11 +1,17 @@
 const Books = {
   template: `
-    <div class="container">
+  <div>
+  <h2 v-if="errorMessage" style="text-align: center; color: red;">{{ errorMessage }}</h2>
+    <div v-if="!errorMessage" class="container">
       <h2 style="text-align: center; margin-top: 20px; color: darkgreen;">Available Books</h2>
       <hr><br>
 
+      <div v-if="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
       <div v-for="(section, index) in sections" :key="index" class="section">
-        <h1 style="text-align: center; color: crimson;"> • {{ section.section_name }} •</h1>
+        <h3 style="text-align: center; color: crimson;"> • {{ section.section_name }} •</h3>
         <br><br><br>
 
         <div class="row">
@@ -26,6 +32,7 @@ const Books = {
                     <p style="color: crimson;">Books request limit reached</p>
                   </form>
                 </div>
+
                 <div v-else>
                   <form @submit.prevent="requestBook(book.id)">
                     <button type="submit" class="btn btn-dark">Request</button>
@@ -37,7 +44,9 @@ const Books = {
         </div>
       </div>
     </div>
+    </div>
   `,
+
   data() {
     return {
       sections: [],
@@ -45,11 +54,14 @@ const Books = {
       userBooks: [],
       bookRatingDict: {},
       countConnection: 0,
+      errorMessage: null
     };
   },
+
   created() {
-    this.fetchBooks();
+    this.fetchBooks()
   },
+
   methods: {
     async fetchBooks() {
       try {
@@ -59,47 +71,66 @@ const Books = {
             'Authentication-Token': sessionStorage.getItem('token')
           }
         });
-        if (!response.ok) throw new Error('Network response was not ok');
+
+        if (response.status === 403) {
+          this.errorMessage = "You are not authorized to view this page."
+          return
+        }
+
+        if (!response.ok) throw new Error('Network response was not ok')
         const data = await response.json();
 
-        console.log('Fetched data:', data);
+        this.sections = data.sections
+        this.books = data.recommended
+        this.bookRatingDict = data.book_rating_dict
+        this.countConnection = data.count_connection
+        this.userBooks = data.user_feedbacks.map(feedback => feedback.book_id)
 
-        this.sections = data.sections;
-        this.books = data.recommended; // Assuming 'recommended' contains the list of books
-        this.bookRatingDict = data.book_rating_dict;
-        this.countConnection = data.count_connection;
-        this.userBooks = data.user_feedbacks.map(feedback => feedback.book_id);
+        console.log(bookRatingDict)
+
       } catch (error) {
-        console.error('Error fetching books:', error);
+        console.error('Error fetching books:', error)
+        this.errorMessage = "An error occurred while fetching book data."
       }
     },
+
     getBooksBySection(sectionId) {
-      return this.books.filter(book => book.section_id === sectionId);
+      return this.books.filter(book => book.section_id === sectionId)
     },
+
     getBookImage(bookImg) {
-      return `/static/images/${bookImg}`;
+      return `/static/images/${bookImg}`
     },
+
     async requestBook(bookId) {
       try {
         const res = await fetch(`/request_book/${bookId}`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            'Authentication-Token': sessionStorage.getItem('token')
           },
-          body: JSON.stringify({ action: "request", book_id: bookId }) // Ensure 'action' is sent in the body
-        });
-    
+
+          body: JSON.stringify({ action: "request", book_id: bookId })
+        })
+
+        if (res.status === 403) {
+          this.errorMessage = "You are not authorized to make this request."
+          return
+        }
+
         if (res.ok) {
-          console.log("Request sent:");
+          const data = await res.json()
+          console.log("Request sent:", data.message || "Request was successful.")
+
         } else {
-          console.error("Failed to send request:", res.statusText);
+          console.log("Failed to send request")
         }
       } catch (error) {
-        console.error("Error sending request:", error);
+        console.error("Error sending request:", error)
       }
     }
-    
   }
-};
+}
 
-export default Books;
+export default Books

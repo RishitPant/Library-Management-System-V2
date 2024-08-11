@@ -47,9 +47,16 @@ const Login = {
               sessionStorage.setItem("email", data.email)
               sessionStorage.setItem("id", data.id)
 
-              console.log(sessionStorage.getItem("role"))
+              //console.log(sessionStorage.getItem("role"))
+              //console.log(data.token)
               
-              router.push(`/my_books/${data.id}`)
+              if (sessionStorage.getItem("role") === "user" ) {
+                router.push(`/my_books/${data.id}`)
+              }
+
+              if (sessionStorage.getItem("role") === "admin" ){
+                router.push(`/admin_dashboard`)
+              }
 
             } else {
               console.error("Login Failed")

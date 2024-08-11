@@ -1,9 +1,10 @@
 const AdminDashboard = {
-    template: 
-    `
-    <div>
-      <h2>Hi, {{ currentUser }}</h2>
-
+  template: `
+  <div>
+    <h2 v-if="!errorMessage">Hi, {{ currentUser }}</h2>
+    <h2 v-if="errorMessage" style="text-align: center; color: red;">{{ errorMessage }}</h2>
+    
+    <div v-if="!errorMessage">
       <h2 style="text-align: center; margin-top: 20px;">All Sections</h2>
       <table border="1" padding="2" style="border-collapse: collapse; margin: auto; margin-top: 20px;">
         <thead>
@@ -50,58 +51,67 @@ const AdminDashboard = {
         </tbody>
       </table>
     </div>
-    `,
+  </div>
+  `,
 
-    data() {
-        return {
-            sections: [],
-            books: [],
-            currentUser: ''
-        }
-    },
+  data() {
+      return {
+          sections: [],
+          books: [],
+          currentUser: '',
+          errorMessage: ''
+      };
+  },
 
-    created() {
-      this.fetchData()
-    },
+  created() {
+    this.fetchData();
+  },
 
-    methods: {
-        async fetchData() {
-            try {
-              const response = await fetch('/admin_dashboard', {
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authentication-Token': sessionStorage.getItem('token')
-                }
-              });
-              const data = await response.json();
+  methods: {
+      async fetchData() {
+          try {
+            const response = await fetch('/admin_dashboard', {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authentication-Token': sessionStorage.getItem('token')
+              }
+            });
 
-              console.log(data)
-      
-              this.sections = data.sections;
-              this.books = data.books;
-              this.currentUser = data.current_user;
-            } catch (error) {
-              console.error("Error fetching data:", error);
+            //console.log(sessionStorage.getItem('token'))
+
+            if (response.status === 403) {
+              this.errorMessage = "You are not authorized to see this page."
+
+            } else {
+              const data = await response.json()
+              this.sections = data.sections
+              this.books = data.books
+              this.currentUser = data.current_user
             }
-          },
 
-          getSectionBooksUrl(sectionId) {
-            return `/#/section/${sectionId}`;
-          },
-      
-          getEditSectionUrl(sectionId) {
-            return `/edit_section/${sectionId}`;
-          },
-      
-          getDeleteSectionUrl(sectionId) {
-            return `/delete_section/${sectionId}`;
-          },
-      
-          getSectionName(sectionId) {
-            const section = this.sections.find(s => s.id === sectionId);
-            return section ? section.section_name : 'Unknown Section';
+          } catch (error) {
+            console.error("Error fetching data:", error)
+            this.errorMessage = "An error occurred while loading the page."
           }
-    }
+      },
+
+      getSectionBooksUrl(sectionId) {
+          return `/#/section/${sectionId}`
+      },
+
+      getEditSectionUrl(sectionId) {
+          return `/edit_section/${sectionId}`
+      },
+
+      getDeleteSectionUrl(sectionId) {
+          return `/delete_section/${sectionId}`
+      },
+
+      getSectionName(sectionId) {
+          const section = this.sections.find(s => s.id === sectionId)
+          return section ? section.section_name : 'Unknown Section'
+      }
+  }
 }
 
 export default AdminDashboard

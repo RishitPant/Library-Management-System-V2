@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, send_file
 from flask_login import login_user, login_required
-from flask_security import auth_required, current_user, SQLAlchemyUserDatastore, roles_required
+from flask_security import auth_required, current_user, SQLAlchemyUserDatastore, roles_required, roles_accepted
 from models import *
 from flask_security.utils import hash_password, verify_password
 from extensions import db
@@ -17,6 +17,9 @@ PDF_UPLOAD_FOLDER = os.path.join(current_dir, 'static', 'pdf')
 
 def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
+    @app.errorhandler(403)
+    def forbidden(error):
+        return jsonify({"message": "You cannot see this page"}), 403
     
     @app.before_request
     def last_visit():
@@ -97,6 +100,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
     @app.route("/my_books/<int:userid>", methods=["GET", "POST"])
     @auth_required('token')
+    @roles_accepted('admin', 'user')
     def my_books(userid):
         try:
             user = User.query.get(userid)
@@ -157,6 +161,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
                     avg_rating = 0
                 book_rating_dict[feedback.books_id] = avg_rating
 
+            print("Book Rating Dict:", book_rating_dict)
+
+
             response = {
                 'user_books': [book.to_dict() for book in user_books],
                 'completed_books': [book.to_dict() for book in completed_books],
@@ -174,9 +181,6 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/<int:bookid>/ratings', methods=["GET", "POST"])
     @auth_required('token')
     def book_ratings(bookid):
-        if not current_user.is_authenticated:
-            return jsonify({'message': 'Unauthorized access'}), 401
-
         if request.method == 'POST':
             existing_rating = Feedback.query.filter_by(user_id = current_user.id, books_id=bookid).all()
 
@@ -200,6 +204,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
         for feedback in feedbacks:
             user = User.query.get(feedback.user_id)
             users.append(user.email)
+
+        avg_rating = 0
         
         if feedbacks:
             avg_rating = sum(feedback.rating for feedback in feedbacks if feedback.rating is not None) / len(feedbacks) if feedbacks else 0
@@ -214,8 +220,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/view/<int:bookid>', methods=["GET"])
-    @cache.cached(timeout=3600)
     @auth_required('token')
+    @cache.cached(timeout=3600)
     def view(bookid):
         book = Book.query.get(bookid)
         if not book:
@@ -261,8 +267,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/books', methods=["GET", "POST"])
-    @cache.cached(timeout=3600)
     @auth_required('token')
+    @cache.cached(timeout=3600)
     def books():
         count_connection = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=False).count()
 
@@ -293,10 +299,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
         }), 200
     
 
-    @app.route('/admin_dashboard', methods=["GET", "POST"])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
+    @app.route('/admin_dashboard', methods=["GET"])
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def admin_dashboard():
         sections = Section.query.all()
         books = Book.query.all()
@@ -312,9 +318,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/add_book', methods=["GET", "POST"])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def add_book():
         if request.method == "GET":
             sections = Section.query.all()
@@ -360,9 +366,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/edit-book/<int:id>', methods=["GET", "PUT"])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def edit_book(id):
         book = Book.query.get(id)
         if not book:
@@ -411,9 +417,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/edit-section/<int:id>', methods=['GET', 'POST'])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def edit_section(id):
         section = Section.query.get(id)
 
@@ -441,9 +447,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/add-section', methods=["GET", "POST"])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def add_section():
         if request.method == "GET":
             sections = Section.query.all()
@@ -470,9 +476,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/delete-section/<int:id>', methods=["GET", "POST"])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def delete_section(id):
         section = Section.query.get(id)
 
@@ -491,9 +497,9 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/delete-book/<int:id>', methods=["GET", "POST"])
-    @cache.cached(timeout=1800)
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
+    @cache.cached(timeout=1800)
     def delete_book(id):
         book = Book.query.get(id)
 
@@ -508,11 +514,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/request_book/<int:book_id>', methods=["GET", "POST"])
-    @roles_required('user')
     @auth_required('token')
     def request_book(book_id):
         if request.method == "POST":
-            action = request.form.get('action')
+            action = request.json.get('action')
 
             if action == "request":
                 check_req_count = UserBookRequest.query.all()
@@ -527,17 +532,17 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/book_requests', methods=["GET", "POST"])
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
     def book_requests():
-        requests = UserBookRequest().query.all()
+        reqs = UserBookRequest().query.all()
 
-        return jsonify({"requests": [ request.to_dict() for request in requests ]}), 200
+        return jsonify({"requests": [ req.to_dict() for req in reqs ]}), 200
     
 
     @app.route('/approve_request/<int:request_id>', methods=["GET", "POST"])
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
     def approve_request(request_id):
         if request.method == "POST":
             user_req = UserBookRequest.query.get(request_id)
@@ -561,8 +566,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/reject_request/<int:request_id>', methods=["GET", "POST"])
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
     def reject_request(request_id):
         if request.method == "POST":
             user_req = UserBookRequest.query.get(request_id)
@@ -574,8 +579,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/search')
-    @roles_required('admin', 'user')
     @auth_required('token')
+    @roles_required('admin', 'user')
     def search():
         query = "%" + request.args.get('query', '').strip().lower() + "%"
         
@@ -607,8 +612,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/section/<int:section_id>/', methods=["GET", "POST"])
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
     def section_books(section_id):
         section = Section.query.get(section_id)
         books = Book.query.filter_by(section_id=section_id).all()
@@ -622,8 +627,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     
 
     @app.route('/stats', methods=["GET", "POST"])
-    @roles_required('admin')
     @auth_required('token')
+    @roles_required('admin')
     def stats():
         total_books = len(Book.query.all())
         total_sections = len(Section.query.all())

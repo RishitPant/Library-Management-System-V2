@@ -2,6 +2,8 @@ const Ratings = {
     template:
     `
     <div>
+    <h2 v-if="error" style="text-align: center; color: red;">{{ error }}</h2>
+    <div v-if="!error" >
     <form @submit.prevent="submitRating">
       <select v-model="selectedRating" required>
         <option value="1">1</option>
@@ -24,6 +26,7 @@ const Ratings = {
       <button @click="goBack" class="btn btn-dark">Back</button>
     </div>
   </div>
+  </div>
     `,
 
     data() {
@@ -32,6 +35,7 @@ const Ratings = {
             feedbacks: [],
             bookId: null,
             userId: null,
+            error: ''
         }
     },
     mounted() {
@@ -51,9 +55,15 @@ const Ratings = {
                       }
                 })
 
+                if (res.status === 403){
+                    this.error = "You are not authorized to view ratings for this book."
+                    return
+                }
+
                 if (res.ok) {
                     const data = await res.json()
                     this.feedbacks = data.feedbacks
+
                 } else {
                     console.error('Failed to fetch feedbacks')
                 }
@@ -78,11 +88,15 @@ const Ratings = {
                     body: JSON.stringify({ rating: this.selectedRating }),
                 })
 
+                if (response.status === 403) {
+                    this.error = "You are not authorized to submit rating for this book."
+                    return
+                }
+
                 if (response.ok) {
                     this.fetchFeedbacks()
                 } else {
-                    const errorData = await response.json()
-                    console.error('Failed to submit rating:', errorData.message)
+                    console.log("Failed to submit rating")
                 }
             } catch (error) {
                 console.error('Error submitting Rating:', error)
