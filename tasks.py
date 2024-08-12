@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from models import User, Book
 import flask_excel as excel
 from mail_service import send_email
-
+from models import *
+import os
 
 @shared_task(ignore_result=True)
 def send_daily_reminder():
@@ -22,6 +23,69 @@ def send_daily_reminder():
             send_email(email, subject, content_body)
 
     return "Reminders sent"
+
+
+@shared_task(ignore_result=True)
+def send_monthly_activity_report():
+
+    month_start = datetime.utcnow().replace(day=1)
+    month_end = (month_start + timedelta(days=32)).replace(day=1)
+
+    books_issued = Book.query.filter(Book.date_issued.between(month_start, month_end)).all()
+
+    books_returned = UserBookConnection.query.filter(
+        UserBookConnection.returned.is_(True), UserBookConnection.date_accessed.between(month_start, month_end)).all()
+
+    feedbacks = Feedback.query.filter(Feedback.date.between(month_start, month_end)).all()
+
+    content = f"""
+    <html>
+    <head><title>Monthly Activity Report - {month_start.strftime('%B %Y')}</title></head>
+    <body>
+    <h1>Monthly Activity Report ({month_start.strftime('%B %Y')})</h1>
+    <h2>Books Issued</h2>
+    <ul>
+    """
+    if books_issued:
+        for book in books_issued:
+            if book.name and book.authors:
+                content += f"<li>{book.name} by {book.authors}</li>"
+    else:
+        content += "<li>No books issued this month.</li>"
+
+    content += "</ul>"
+
+    content += "<h2>Books Returned</h2><ul>"
+    if books_returned:
+        for connection in books_returned:
+            book = Book.query.get(connection.book_id)
+            if book and book.name and book.authors:
+                content += f"<li>{book.name} by {book.authors}</li>"
+    else:
+        content += "<li>No books returned this month.</li>"
+
+    content += "</ul>"
+
+    content += "<h2>Feedbacks Received</h2><ul>"
+    if feedbacks:
+        for feedback in feedbacks:
+            book = Book.query.get(feedback.books_id)
+            if book and book.name:
+                content += f"<li>{book.name} received a rating of {feedback.rating}</li>"
+    else:
+        content += "<li>No feedback received this month.</li>"
+
+    content += "</ul>"
+
+    content += "</body></html>"
+
+    librarian_email = "librarian@lms.com"
+    subject = f"Monthly Activity Report - {month_start.strftime('%B %Y')}"
+    content_body = content
+    send_email(librarian_email, subject, content_body)
+
+    return "Monthly report sent"
+
 
 
 @shared_task(ignore_result=False)

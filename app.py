@@ -6,7 +6,7 @@ import views
 from worker import celery_init_app
 import flask_excel as excel
 from flask_mail import Mail
-from tasks import send_daily_reminder
+from tasks import send_daily_reminder, send_monthly_activity_report
 from celery.schedules import crontab
 from models import User
 
@@ -73,6 +73,10 @@ def setup_periodic_tasks(sender, **kwargs):
         send_daily_reminder.s(),
     )
 
+    sender.add_periodic_task(
+        crontab(hour=11, minute=28, day_of_month='12'),
+        send_monthly_activity_report.s(),
+    )
 
 if __name__ == "__main__":
     app.run()

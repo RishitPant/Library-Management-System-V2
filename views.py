@@ -113,8 +113,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
             connection = UserBookConnection.query.filter_by(user_id=userid).all()
             for i in connection:
                 if check_access(i, 1):  # Check if the book access period is over
+                    i.access_expired = True
                     book = Book.query.get(i.book_id)
-                    db.session.delete(i)
                     db.session.commit()
                     return jsonify(message=f"Access to '{book.name}' has been revoked."), 200
 
@@ -138,7 +138,8 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
                     connection = UserBookConnection.query.filter_by(user_id=userid, book_id=book_id).first()
                     if connection:
                         book.is_available = True
-                        db.session.delete(connection)
+                        connection.returned = True
+                        
                         db.session.commit()
                         return jsonify(message=f'Book "{book.name}" returned successfully!', success=True)
                     else:
@@ -160,7 +161,10 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
             user_books = Book.query.join(UserBookConnection).filter(
                 UserBookConnection.user_id == current_user.id,
-                UserBookConnection.is_completed == False
+                UserBookConnection.is_completed == False,
+                UserBookConnection.returned == False,
+                UserBookConnection.access_expired == False
+
             ).all()
 
             all_completed_books = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=True).all()

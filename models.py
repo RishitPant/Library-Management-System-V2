@@ -10,6 +10,8 @@ class UserBookConnection(db.Model):
     book_id = db.Column(db.Integer, db.ForeignKey('book.id', ondelete='CASCADE'), primary_key=True)
     is_completed = db.Column(db.Boolean, default=False)
     date_accessed = db.Column(db.DateTime, default=datetime.utcnow)
+    returned = db.Column(db.Boolean, default=False)
+    access_expired = db.Column(db.Boolean, default=False)
 
     user = db.relationship('User', back_populates='user_books')
     book = db.relationship('Book', back_populates='book_users')
@@ -99,11 +101,13 @@ class Feedback(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
 
     books_id = db.Column(db.Integer, db.ForeignKey('book.id', ondelete='CASCADE'))
+    date = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
             'rating': self.rating,
+            'date': self.date
         }
 
 
@@ -127,3 +131,4 @@ class UserBookBuy(db.Model):
     userid = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     bookid = db.Column(db.Integer, db.ForeignKey('book.id', ondelete='CASCADE'))
     bought = db.Column(db.Boolean, default=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)

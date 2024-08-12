@@ -6,7 +6,7 @@ import logging
 
 SMTP_SERVER = "localhost"
 SMTP_PORT = 1025
-SENDER_EMAIL = "rishitpant200@gmail.com"
+SENDER_EMAIL = "librarian@lms.com"
 SENDER_PASSWORD = ''
 
 def send_email(to, subject, content_body):
