@@ -32,12 +32,12 @@ def send_monthly_activity_report():
     month_start = datetime.utcnow().replace(day=1)
     month_end = (month_start + timedelta(days=32)).replace(day=1)
 
-    books_issued = Book.query.filter(Book.date_issued.between(month_start, month_end)).all()
+    books_issued = Book.query.filter(Book.date_issued >= month_start, Book.date_issued < month_end).all()
 
     books_returned = UserBookConnection.query.filter(
-        UserBookConnection.returned.is_(True), UserBookConnection.date_accessed.between(month_start, month_end)).all()
+        UserBookConnection.returned == True, UserBookConnection.date_accessed >= month_start, UserBookConnection.date_accessed < month_end).all()
 
-    feedbacks = Feedback.query.filter(Feedback.date.between(month_start, month_end)).all()
+    feedbacks = Feedback.query.filter(Feedback.date >= month_start, Feedback.date < month_end).all()
 
     content = f"""
     <html>
@@ -111,7 +111,7 @@ def export_books_to_csv():
     with open(file_path, 'wb') as file:
         file.write(csv_out.data)
 
-    librarian_email = "librarian@example.com"
+    librarian_email = "librarian@lms.com"
     subject = "CSV Export Completed"
     content_body = "The export on e-books has been completed successfully. Check your downloads for the CSV file."
     send_email(librarian_email, subject, content_body)

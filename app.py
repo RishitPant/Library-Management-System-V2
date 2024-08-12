@@ -69,12 +69,12 @@ excel.init_excel(app)
 def setup_periodic_tasks(sender, **kwargs):
 
     sender.add_periodic_task(
-        crontab(hour=16, minute=10, day_of_week=6),
+        crontab(hour=15, minute=10, day_of_week=1),
         send_daily_reminder.s(),
     )
 
     sender.add_periodic_task(
-        crontab(hour=11, minute=28, day_of_month='12'),
+        crontab(hour=16, minute=19, day_of_month='12'),
         send_monthly_activity_report.s(),
     )
 

@@ -9,7 +9,7 @@ const Navbar = {
       <router-link v-if="isAdmin" to="/add-section">Add Section</router-link>
       <router-link v-if="isAdmin" to="/book_requests">Book Requests</router-link>
       <router-link v-if="isAdmin" to="/stats">Statistics</router-link>
-      <button> <router-link v-if="isAdmin" to="/export-csv">Export CSV</router-link></button>
+    <router-link v-if="isAdmin" to="/export-csv"><button>Export CSV</button></router-link>
       
     
       <router-link v-if="isUser" :to="'/my_books/' + userid">My Books</router-link>
@@ -31,8 +31,6 @@ const Navbar = {
     data() {
         return {
             query: '',
-            // isAdmin: false,
-            // isUser: false,
             userid: sessionStorage.getItem("id")
         }
     },

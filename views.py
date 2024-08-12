@@ -54,7 +54,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
 
     @app.route('/')
-    @cache.cached(timeout=3600)
+    @cache.cached(timeout=100)
     def home():
         return render_template('index.html')
     
@@ -107,11 +107,12 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route("/my_books/<int:userid>", methods=["GET", "POST"])
     @auth_required('token')
     @roles_accepted('admin', 'user')
+    @cache.cached(timeout=10)
     def my_books(userid):
         try:
             connection = UserBookConnection.query.filter_by(user_id=userid).all()
             for i in connection:
-                if check_access(i, 1):  # Check if the book access period is over
+                if check_access(i, 10):  # Check if the book access period is over
                     i.access_expired = True
                     book = Book.query.get(i.book_id)
                     db.session.commit()
@@ -239,7 +240,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
     @app.route('/view/<int:bookid>', methods=["GET"])
     @auth_required('token')
-    @cache.cached(timeout=3600)
+    @cache.cached(timeout=10)
     def view(bookid):
         book = Book.query.get(bookid)
         if not book:
@@ -295,7 +296,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
 
     @app.route('/books', methods=["GET", "POST"])
     @auth_required('token')
-    @cache.cached(timeout=3600)
+    @cache.cached(timeout=10)
     def books():
         count_connection = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=False).count()
 
@@ -329,6 +330,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/admin_dashboard', methods=["GET"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def admin_dashboard():
         sections = Section.query.all()
         books = Book.query.all()
@@ -346,6 +348,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/add_book', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=10)
     def add_book():
         if request.method == "GET":
             sections = Section.query.all()
@@ -393,6 +396,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/edit-book/<int:id>', methods=["GET", "PUT"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def edit_book(id):
         book = Book.query.get(id)
         if not book:
@@ -443,6 +447,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/edit-section/<int:id>', methods=['GET', 'POST'])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def edit_section(id):
         section = Section.query.get(id)
 
@@ -472,6 +477,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/add-section', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def add_section():
         if request.method == "GET":
             sections = Section.query.all()
@@ -500,6 +506,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/delete-section/<int:id>', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def delete_section(id):
         section = Section.query.get(id)
 
@@ -520,6 +527,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/delete-book/<int:id>', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def delete_book(id):
         book = Book.query.get(id)
 
@@ -572,21 +580,50 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
             user_req = UserBookRequest.query.get(request_id)
 
             if user_req:
-                count_connections = UserBookConnection.query.filter_by(user_id=current_user.id, is_completed=False).count()
+                count_connections = UserBookConnection.query.filter_by(
+                    user_id=current_user.id,
+                    is_completed=False,
+                    access_expired=False,
+                    returned=False
+                ).count()
 
                 if count_connections < 5:
-                    connection = UserBookConnection(user_id=user_req.user_id, book_id=user_req.book_id)
-                    db.session.add(connection)
+                    access_expired_connection = UserBookConnection.query.filter_by(
+                        user_id=user_req.user_id,
+                        book_id=user_req.book_id,
+                        access_expired=True
+                    ).first()
+
+                    return_expired_connection = UserBookConnection.query.filter_by(
+                        user_id=user_req.user_id,
+                        book_id=user_req.book_id,
+                        returned=True
+                    ).first()
+
+                    if return_expired_connection:
+                        return_expired_connection.returned = False
+                        db.session.commit()
+
+                    if access_expired_connection:
+                        access_expired_connection.access_expired = False
+                        db.session.commit()
+
+                    if not access_expired_connection and not return_expired_connection:
+                        connection = UserBookConnection(user_id=user_req.user_id, book_id=user_req.book_id)
+                        db.session.add(connection)
+                        db.session.commit()
+
                     user_req.status = 'approved'
                     db.session.delete(user_req)
                     db.session.commit()
+
                     return jsonify({"message": "Request has been approved"}), 200
                 else:
                     db.session.delete(user_req)
                     db.session.commit()
                     return jsonify({"message": "Book borrowing limit reached"}), 400
 
-        return jsonify({"message": "No pending requests"}), 200
+            return jsonify({"message": "No pending requests"}), 200
 
 
     @app.route('/reject_request/<int:request_id>', methods=["GET", "POST"])
@@ -653,6 +690,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, cache):
     @app.route('/stats', methods=["GET", "POST"])
     @auth_required('token')
     @roles_required('admin')
+    @cache.cached(timeout=5)
     def stats():
         total_books = len(Book.query.all())
         total_sections = len(Section.query.all())

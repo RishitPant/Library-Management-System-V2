@@ -1,7 +1,7 @@
 const Home = {
     template: `
     
-    <h1> This is home </h1>
+    <h1> Welcome to Ocean of Books! </h1>
     `
 }
 
