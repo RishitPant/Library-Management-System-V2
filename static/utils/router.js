@@ -19,6 +19,7 @@ import BookRequests from '../components/BookRequests.js'
 import SearchBook from '../components/SearchBook.js'
 import SectionBooks from '../components/SectionBooks.js'
 import Stats from '../components/Stats.js'
+import ExportCSV from '../components/ExportCSV.js'
 
 
 const routes = [
@@ -43,7 +44,8 @@ const routes = [
     { path: '/reject_request/:request_id', component: BookRequests },
     { path: '/search', component: SearchBook },
     { path: '/section/:section_id', component: SectionBooks },
-    { path: '/stats', component: Stats }
+    { path: '/stats', component: Stats },
+    { path: '/export-csv', component: ExportCSV }
 ]
 
 const router = new VueRouter({

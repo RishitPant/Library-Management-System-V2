@@ -5,6 +5,7 @@ import flask_excel as excel
 from mail_service import send_email
 from models import *
 import os
+import csv
 
 @shared_task(ignore_result=True)
 def send_daily_reminder():
@@ -89,11 +90,30 @@ def send_monthly_activity_report():
 
 
 @shared_task(ignore_result=False)
-def create_csv():
-    resource = Book.query.with_entities(Book.name, Book.content, Book.authors, Book.date_issued).all() #Book.return_date)
-    csv_out = excel.make_response_from_query_sets(resource, ['name', 'content', 'authors', 'date_issued'], 'csv', file_name='file.csv')
+def export_books_to_csv():
+    file_path = './user-downloads/issued_books.csv'
 
-    with open('./user-downloads/file.csv', 'wb') as file:
+    connections = UserBookConnection.query.join(Book).with_entities(
+        Book.name,
+        Book.content,
+        Book.authors,
+        Book.date_issued,
+        UserBookConnection.returned
+    ).all()
+
+    csv_out = excel.make_response_from_query_sets(
+        connections,
+        column_names=['name', 'content', 'authors', 'date_issued', 'returned'],
+        file_type='csv',
+        file_name='issued_books'
+    )
+
+    with open(file_path, 'wb') as file:
         file.write(csv_out.data)
-    
-    return 'file.csv'
+
+    librarian_email = "librarian@example.com"
+    subject = "CSV Export Completed"
+    content_body = "The export on e-books has been completed successfully. Check your downloads for the CSV file."
+    send_email(librarian_email, subject, content_body)
+
+    return 'CSV export completed and email sent'
